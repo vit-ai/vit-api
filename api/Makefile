@@ -4,4 +4,4 @@ down-dev:
 	docker compose down
 
 quick:
-	uvicorn main:app --reload
+	uvicorn app.main:app --reload
