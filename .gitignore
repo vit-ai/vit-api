@@ -2,3 +2,4 @@
 /gpu_api/weights
 /tests/gpu_tests/assets/
 /gpu_api/endpoints/__pycache__
+/tests/gpu_tests/__pycache__

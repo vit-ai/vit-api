@@ -39,7 +39,7 @@ stub = modal.Stub('semantic-sam-inference')
 
 @stub.function(image=semantic_sam_im, gpu='T4')
 @modal.web_endpoint(label='semantic-sam-inference', method="POST")
-def semantic_sam_inference(uploadfile: UploadFile, levels: list = Form(...), test: bool = Form(...)): # add level as parameter as well as bool Test to return test image
+def semantic_sam_inference(uploadfile: UploadFile, levels: list = Form(...), test: bool = Form(...)):
     import sys 
     sys.path.append('/home/appuser/Semantic-SAM/')
     from semantic_sam import prepare_image, plot_results, SemanticSamAutomaticMaskGenerator
@@ -49,10 +49,13 @@ def semantic_sam_inference(uploadfile: UploadFile, levels: list = Form(...), tes
     import numpy as np
     import torch
     import json
+
     # Load uploaded file and prepare image
     file_bytes = uploadfile.file.read()
     file_stream = io.BytesIO(file_bytes)
     pil_image = Image.open(file_stream).convert('RGB')
+    original_size = pil_image.size
+
     t = []
     t.append(transforms.Resize(640, interpolation=Image.BICUBIC))
     transform1 = transforms.Compose(t)
@@ -60,18 +63,25 @@ def semantic_sam_inference(uploadfile: UploadFile, levels: list = Form(...), tes
 
     image_ori = np.asarray(image_ori)
     image = torch.from_numpy(image_ori.copy()).permute(2, 0, 1).cuda()
-    
 
-
-    model = build_semantic_sam(model_type='L', ckpt='/home/appuser/swinl_only_sam_many2many.pth') # model_type: 'L' / 'T', depends on your checkpint
+    model = build_semantic_sam(model_type='L', ckpt='/home/appuser/swinl_only_sam_many2many.pth')
     auto_mask_generator = SemanticSamAutomaticMaskGenerator(model, level=[int(level) for level in levels], box_nms_thresh=0.4)
     masks = auto_mask_generator.generate(image)
-    #include test flow that returns full image with masks overlayed
-    print(masks)
+
+    # Rescale masks back to original image size
+    revert_transform = transforms.Resize(original_size, interpolation=Image.BICUBIC)
     for item in masks:
         if isinstance(item['segmentation'], np.ndarray):
+            # Resize segmentation mask to the original size
+            mask = Image.fromarray(item['segmentation'])
+            mask = revert_transform(mask)
+            item['segmentation'] = np.asarray(mask)
+
+            # Convert numpy array to list
             item['segmentation'] = item['segmentation'].tolist()
 
     json_str = json.dumps(masks)
     print(json_str)
     return Response(content=json_str)
+
+

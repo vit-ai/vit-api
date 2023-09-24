@@ -39,4 +39,10 @@ if __name__ == "__main__":
     # Extract the image path from the command-line arguments
     img_path = sys.argv[1]
     content = call_endpoint(img_path)
-    print(content)
+    print(np.array(content[0]['segmentation']).shape)
+    
+    base_image = Image.open(img_path)
+    print(base_image.size)
+    print(content[0])
+    Image.fromarray(np.array(content[0]['segmentation'])).save('test.png')
+    # plot_results(food['masks'], newim, save_path='./')

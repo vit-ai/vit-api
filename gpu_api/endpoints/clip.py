@@ -1,5 +1,5 @@
 import modal 
-from fastapi import UploadFile, Response
+from fastapi import UploadFile, Response, Form
 stub = modal.Stub('clip-inference')
 
 def initialize_clip(): # add parameter for specific model
@@ -36,7 +36,7 @@ build_image = (modal.Image.from_dockerfile('/Users/liammckenna/vit-ai/api/vit-ap
 
 @stub.function(image=build_image, gpu='T4')
 @modal.web_endpoint(label='clip-inference', method="POST")
-def clip_inference(uploadfile: UploadFile, label_list: UploadFile):
+def clip_inference(uploadfile: UploadFile, label_list: list = Form(...)):
     import io
     import cv2
     import numpy as np
@@ -48,7 +48,6 @@ def clip_inference(uploadfile: UploadFile, label_list: UploadFile):
     file_bytes = uploadfile.file.read()
     file_stream = io.BytesIO(file_bytes)
 
-    label_list = json.loads(label_list.file.read())
     image_bgr = cv2.imdecode(np.frombuffer(file_bytes, np.uint8), cv2.IMREAD_COLOR)
     image = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
     pil_image = Image.fromarray(image)

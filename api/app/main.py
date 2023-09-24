@@ -1,5 +1,6 @@
-from fastapi import FastAPI, UploadFile
+from fastapi import FastAPI, UploadFile, Response
 import sys 
+import json
 sys.path.append("/Users/liammckenna/vit-ai/api/vit-api/api/app/endpoints")
 import get_annotated_masks
 from PIL import Image
@@ -25,6 +26,14 @@ async def get_annotated_masks_endpoint(file: UploadFile):
 
 
     pil_image = Image.open(file.file)
-    annotated_masks = get_annotated_masks.get_annotated_masks(pil_image)
-    print(annotated_masks)
+    detected_food_clusters = get_annotated_masks.split_masks(pil_image)
+    if len(detected_food_clusters) == 0:
+        return Response(content=json.dumps([]), media_type="application/json")
+    
+    for food in detected_food_clusters:
+        annotated_masks = get_annotated_masks.get_annotated_masks(food['image'])
+        food['masks'] = annotated_masks
+        food['image'] = None
+    
+    return Response(content=json.dumps(detected_food_clusters), media_type="application/json")
      
